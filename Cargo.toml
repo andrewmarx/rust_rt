@@ -1,0 +1,6 @@
+[package]
+name = "rust_rt"
+version = "0.1.0"
+authors = ["Andrew Marx <andrewjmarx@gmail.com>"]
+
+[dependencies]
