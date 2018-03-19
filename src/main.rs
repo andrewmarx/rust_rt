@@ -16,7 +16,7 @@ fn save_image(x: i32, y: i32) {
     let output = String::from("P3\n") + &x.to_string() + " " + &y.to_string() + "\n255\n";
 
     fs::create_dir_all("./out/").expect("Could not create output directory.");
-    let mut f = File::create("./out/test.ppm").expect("Unable to create file");
+    let mut f = File::create("./out/test2.ppm").expect("Unable to create file");
 
     f.write(output.as_bytes()).expect("Could not write file");
 
