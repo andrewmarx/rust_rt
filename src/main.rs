@@ -6,13 +6,26 @@ use std::io::Write;
 use na::{Vector3,};
 
 fn main() {
-    let nx = 200;
-    let ny = 100;
+    let width: i32 = 200;
+    let height: i32 = 100;
+    let mut frame: Vec<i32> = vec![0; (width * height * 3) as usize];
 
-    save_image(nx, ny);
+    for j in {0..height}.rev() {
+        for i in 0..width {
+            let color = Vector3::new(i as f32 / width as f32, j as f32 / height as f32, 0.2) * 255.99;
+
+            let index: usize = ((width * j + i) * 3) as usize;
+
+            frame[index] = color[0] as i32;
+            frame[index + 1] = color[1] as i32;
+            frame[index + 2] = color[2] as i32;
+        }
+    }
+
+    save_image(frame.as_slice(),width, height);
 }
 
-fn save_image(x: i32, y: i32) {
+fn save_image(fr: &[i32], x: i32, y: i32) {
     let output = String::from("P3\n") + &x.to_string() + " " + &y.to_string() + "\n255\n";
 
     fs::create_dir_all("./out/").expect("Could not create output directory.");
@@ -20,20 +33,13 @@ fn save_image(x: i32, y: i32) {
 
     f.write(output.as_bytes()).expect("Could not write file");
 
+    //TODO: Simplify to single loop
     for j in {0..y}.rev() {
         for i in 0..x {
-            let color = Vector3::new(i as f32 / x as f32, j as f32 / y as f32, 0.2) * 255.99;
+            let index: usize = ((x * j + i) * 3) as usize;
 
-            let mut output = String::new();
-            let mut sep = "";
-
-            for val in color.iter() {
-                let v = *val as i32;
-                output.push_str(sep);
-                output.push_str(&v.to_string());
-                sep = " ";
-            }
-            output.push_str("\n");
+            //println!("{}", f[0]);
+            let output = (&fr[index]).to_string() + " " + &(&fr[index + 1]).to_string() + " " + &(&fr[index + 2]).to_string() + "\n";
 
             f.write(output.as_bytes()).expect("Could not write file");
         }
