@@ -1,24 +1,42 @@
-extern crate nalgebra as na;
+extern crate image;
+
+mod math;
+mod graphics;
 
 use std::fs;
 use std::fs::File;
 use std::io::Write;
-use na::{Vector3,};
+
+pub use math::Vec3f;
+pub use graphics::geometry::*;
 
 fn main() {
-    let width: i32 = 200;
-    let height: i32 = 100;
+    let width: i32 = 400;
+    let height: i32 = 200;
     let mut frame: Vec<i32> = vec![0; (width * height * 3) as usize];
+    let g: Geom = load_obj("./dat/lamp.obj");
+    let lower_left_corner = Vec3f::new(-2.0, -1.0, -1.0);
+    let horizontal = Vec3f::new(4.0, 0.0, 0.0);
+    let vertical = Vec3f::new(0.0, 2.0, 0.0);
+    let origin = Vec3f::new(0.0, 0.0, 0.0);
 
     for j in {0..height}.rev() {
         for i in 0..width {
-            let color = Vector3::new(i as f32 / width as f32, j as f32 / height as f32, 0.2) * 255.99;
+            let u = i as f32 / width as f32;
+            let v = j as f32 / height as f32;
+
+            let r = Ray {
+                pos: origin,
+                dir: lower_left_corner + horizontal*u + vertical*v,
+            };
+
+            let col = color(&r) * 255.99;
 
             let index: usize = ((width * j + i) * 3) as usize;
 
-            frame[index] = color[0] as i32;
-            frame[index + 1] = color[1] as i32;
-            frame[index + 2] = color[2] as i32;
+            frame[index] = col.x as i32;
+            frame[index + 1] = col.y as i32;
+            frame[index + 2] = col.z as i32;
         }
     }
 
@@ -46,13 +64,42 @@ fn save_image(fr: &[i32], x: i32, y: i32) {
     }
 }
 
+fn hit_sphere(center: &Vec3f, radius: f32, r: &Ray) -> f32 {
+    let oc = r.pos - *center;
+    let a = r.dir.dot(r.dir);
+    let b = 2.0 *oc.dot(r.dir);
+    let c = oc.dot(oc) - radius*radius;
+    let disc = b*b - 4.0*a*c;
+
+    if disc < 0.0 {
+        -1.0
+    } else {
+        (-b - disc.sqrt()) / (2.0*a)
+    }
+}
+
+fn color(r: &Ray) -> Vec3f {
+    let t = hit_sphere(&Vec3f::new(0.0, 0.0, -1.0), 0.5, r);
+    if t > 0.0 {
+        let mut n = r.point_at_param(t) - Vec3f::new(0.0, 0.0, -1.0);
+        n.normalize();
+        return 0.5*Vec3f::new(n.x+1.0, n.y+1.0, n.z+1.0);
+    }
+
+    let mut unit_direction: Vec3f = r.dir;
+    unit_direction.normalize();
+    let t = 0.5*(unit_direction.y + 1.0);
+
+    (1.0-t)*Vec3f::new(1.0,1.0,1.0) + t*Vec3f::new(0.5,0.7,1.0)
+}
+
 struct Ray {
-    pos: Vector3<f32>,
-    dir: Vector3<f32>,
+    pos: Vec3f,
+    dir: Vec3f,
 }
 
 impl Ray {
-    fn point_at_param(&self, t: f32) -> Vector3<f32> {
+    fn point_at_param(&self, t: f32) -> Vec3f {
         self.pos + t * self.dir
     }
 }
