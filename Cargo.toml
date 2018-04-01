@@ -5,3 +5,8 @@ authors = ["Andrew Marx <andrewjmarx@gmail.com>"]
 
 [dependencies]
 image = "0.18.0"
+rand = "0.4.2"
+
+# Used for valgrind
+#[profile.release]
+#debug = true

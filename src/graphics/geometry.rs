@@ -23,12 +23,16 @@ pub struct Geom {
 }
 
 impl Geom {
+    pub fn set_position(&mut self, v: Vec3f) {
+        self.pos = v;
+    }
+
     pub fn translate(&mut self, v: Vec3f) {
         self.pos = self.pos + v;
     }
 
     pub fn calc_bounding_rad(&mut self) {
-        let mut d = 0.0;
+        let mut d;
 
         for v in self.base_vertex_array.iter() {
             d = (*v-self.pos).length();
@@ -45,7 +49,7 @@ impl Geom {
 
     pub fn transform(&mut self) {
         for i in 0..(self.base_vertex_array.iter().count()) {
-            self.vertex_array[i].pos = self.pos + self.base_vertex_array[i];
+            self.vertex_array[i].pos.set(&(self.pos + self.base_vertex_array[i]));
         }
     }
 
@@ -65,12 +69,18 @@ pub fn load_obj(filepath: &'static str) -> Geom {
 
     for line in lines {
         let l = line.unwrap();
-        let res: Vec<String> = l.split("\\s+").map(|s| s.to_string()).collect();
 
+        let res = l.split_whitespace().collect::<Vec<_>>();
+
+        if res.iter().count() < 1 {
+            continue;
+        }
+
+        //println!("{}", res[0]);
         match res[0].trim() {
             "v" => geom.base_vertex_array.push(Vec3f::new(res[1].parse().unwrap(),res[2].parse().unwrap(),res[3].parse().unwrap())),
             "f" => {
-                for i in 1..(res.len()-3){
+                for i in 0..(res.iter().count()-3){
                     geom.face_array.push(res[1].parse::<usize>().unwrap()-1);
                     geom.face_array.push(res[2+i].parse::<usize>().unwrap()-1);
                     geom.face_array.push(res[3+i].parse::<usize>().unwrap()-1);
@@ -79,6 +89,6 @@ pub fn load_obj(filepath: &'static str) -> Geom {
             _ => {},
         }
     }
-
+    println!("Loaded object. Vertices: {}. Faces: {}.", geom.base_vertex_array.iter().count(), geom.face_array.iter().count());
     geom
 }

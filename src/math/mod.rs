@@ -8,24 +8,29 @@ pub struct Vec3f {
 }
 
 impl Vec3f {
+    #[inline]
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Vec3f {x, y, z}
     }
 
-    pub fn set(&mut self, x: f32, y: f32, z: f32) {
-        self.x = x;
-        self.y = y;
-        self.z = z;
+    #[inline]
+    pub fn set(&mut self, v: &Vec3f) {
+        self.x = v.x;
+        self.y = v.y;
+        self.z = v.z;
     }
 
+    #[inline]
     pub fn length(&self) -> f32 {
         (self.x*self.x + self.y*self.y + self.z*self.z).sqrt()
     }
 
+    #[inline]
     pub fn length_sq(&self) -> f32 {
         self.x*self.x + self.y*self.y + self.z*self.z
     }
 
+    #[inline]
     pub fn normalize(&mut self) {
         let l = self.length();
         self.x = self.x / l;
@@ -33,6 +38,7 @@ impl Vec3f {
         self.z = self.z / l;
     }
 
+    #[inline]
     pub fn cross(&self, v: &Vec3f) -> Vec3f {
         Vec3f::new(self.y*v.z - v.y*self.z, self.z*v.x - v.z*self.x, self.x*v.y -v.x*self.y)
     }
@@ -59,7 +65,8 @@ impl Vec3f {
         v
     }
 
-    pub fn dot(&self, v: Vec3f) -> f32 {
+    #[inline]
+    pub fn dot(&self, v: &Vec3f) -> f32 {
         self.x*v.x + self.y*v.y + self.z*v.z
     }
 }

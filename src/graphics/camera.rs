@@ -25,7 +25,7 @@ pub struct Camera {
     lookup_x: Vec<f32>,
     lookup_y: Vec<f32>,
 
-    imgbuf: RgbaImage,
+    pub imgbuf: RgbaImage,
 
     left_cull: Vec3f,
     right_cull: Vec3f,
@@ -79,18 +79,20 @@ impl Camera {
     }
 
     fn generate_cull_planes(&mut self) {
-        let mut index = 0;
+        let mut index;
 
         for y in 0..self.height {
             for x in 0..self.width {
                 index = y*self.width + x;
 
-                self.ray_list[index as usize] = self.bottom_left +
+                let mut screen_point = self.bottom_left +
                     (self.up * (y as f32+0.5)) +
                     (self.right * (x as f32+0.5)) -
                     self.pos;
 
-                self.ray_list[index as usize].normalize();
+                screen_point.normalize();
+
+                self.ray_list[index as usize].set(&screen_point);
             }
         }
 
@@ -106,8 +108,8 @@ impl Camera {
         self.top_cull = (self.bottom_left + (self.up*self.height as f32)).cross(&self.right);
         self.top_cull.normalize();
 
-        let mut temp_vec = Vec3f::new(0.0, 0.0, 0.0);
-        for x in 0..self.width {
+        let mut temp_vec;
+        for x in 0..(self.width+1) {
             temp_vec = self.bottom_left +
                 (self.up * (self.height as f32 / 2.0)) +
                 (self.right * x as f32) -
@@ -115,10 +117,10 @@ impl Camera {
 
             temp_vec.normalize();
 
-            self.lookup_x[x as usize] = self.right.dot(temp_vec);
+            self.lookup_x[x as usize] = self.right.dot(&temp_vec);
         }
 
-        for y in 0..self.height {
+        for y in 0..(self.height+1) {
             temp_vec = self.bottom_left +
                 (self.up * y as f32) +
                 (self.right * (self.width as f32 / 2.0)) -
@@ -126,39 +128,39 @@ impl Camera {
 
             temp_vec.normalize();
 
-            self.lookup_y[y as usize] = self.up.dot(temp_vec);
+            self.lookup_y[y as usize] = self.up.dot(&temp_vec);
         }
     }
 
     fn basic_frustrum_cull(&self, scene_list: &mut Vec<Geom>) -> Vec<Geom> {
         let mut render_list: Vec<Geom> = Vec::new();
-        let mut d = 0.0;
-        let mut camspherevec = Vec3f::new(0.0, 0.0, 0.0);
+        let mut d;
+        let mut camspherevec;
 
         for mesh in scene_list.iter_mut() {
             camspherevec = mesh.pos - self.pos;
 
-            d = -self.dir.dot(camspherevec);
+            d = -self.dir.dot(&camspherevec);
             if d > mesh.rad {
                 continue;
             }
 
-            d = self.right_cull.dot(camspherevec);
+            d = self.right_cull.dot(&camspherevec);
             if d > mesh.rad {
                 continue;
             }
 
-            d = self.left_cull.dot(camspherevec);
+            d = self.left_cull.dot(&camspherevec);
             if d < -mesh.rad {
                 continue;
             }
 
-            d = self.bottom_cull.dot(camspherevec);
+            d = self.bottom_cull.dot(&camspherevec);
             if d < -mesh.rad {
                 continue;
             }
 
-            d = self.top_cull.dot(camspherevec);
+            d = self.top_cull.dot(&camspherevec);
             if d > mesh.rad {
                 continue;
             }
@@ -181,30 +183,38 @@ impl Camera {
         let mut mid: i32;
         let mut high: i32;
 
-        let mut av = Vec3f::new(0.0, 0.0, 0.0);
+        let mut av;
+
+        let lookup_x_min = self.lookup_x[0];
+        let lookup_x_max = self.lookup_x[self.width as usize];
+        let lookup_y_min = self.lookup_y[0];
+        let lookup_y_max = self.lookup_y[self.height as usize];
+
+        let half_width = self.width/2;
+        let half_height = self.height/2;
 
         for geom in render_list.iter_mut() {
             for v in geom.vertex_array.iter_mut() {
                 av = v.pos - self.pos;
-                dist = av.dot(self.up);
+                dist = av.dot(&self.up);
                 av = av - (self.up * dist);
                 av.normalize();
-                xd = self.right.dot(av);
+                xd = self.right.dot(&av);
 
                 av = v.pos - self.pos;
-                dist = av.dot(self.right);
+                dist = av.dot(&self.right);
                 av = av - (self.right * dist);
                 av.normalize();
-                yd = self.up.dot(av);
+                yd = self.up.dot(&av);
 
-                if xd > self.lookup_x[self.width as usize] {
+                if xd >= lookup_x_max {
                     v.sx = self.width-1;
-                } else if xd < self.lookup_x[0] {
+                } else if xd < lookup_x_min {
                     v.sx = 0;
                 } else {
                     low = 0;
                     high = self.width;
-                    mid = self.width/2;
+                    mid = half_width;
 
                     while (high-low) > 1 {
                         if self.lookup_x[mid as usize] < xd {
@@ -218,14 +228,14 @@ impl Camera {
                     v.sx = low;
                 }
 
-                if yd >= self.lookup_y[self.height as usize] {
+                if yd >= lookup_y_max {
                     v.sy = self.height - 1;
-                } else if yd < self.lookup_y[0] {
+                } else if yd < lookup_y_min {
                     v.sy = 0;
                 } else {
                     low = 0;
                     high = self.height;
-                    mid = self.height/2;
+                    mid = half_height;
 
                     while (high-low) > 1 {
                         if self.lookup_y[mid as usize] < yd {
@@ -255,17 +265,13 @@ impl Camera {
         }
 
         self.render_material();
-
-        self.imgbuf.save("output.png").unwrap();
     }
 
     pub fn render_tris(&mut self, geom: &Geom) {
+        //println!("render_tris()");
         let mut v0: Vertex;
         let mut v1: Vertex;
         let mut v2: Vertex;
-
-        let mut a: i32;
-        let mut b: i32;
 
         let mut minx: i32;
         let mut maxx: i32;
@@ -276,10 +282,8 @@ impl Camera {
 
         let mut ray = Ray::new(&self.pos, &Vec3f::new(0.0, 0.0, 0.0));
 
-        let mut color: Vec3f;
-
         //Moller-Trumbore intersection
-        let mut p: Vec3f;
+        let mut p = Vec3f::new(0.0, 0.0, 0.0);
         let mut q: Vec3f;
         let mut t: Vec3f;
 
@@ -295,8 +299,8 @@ impl Camera {
         let array_size = geom.face_array.iter().count();
         let mut i: usize = 0;
 
-        let mut flag = false;
-
+        let mut flag;
+        //println!("array_size: {}", array_size);
         while i < array_size {
             flag = false;
 
@@ -314,6 +318,8 @@ impl Camera {
 
             for y in miny..(maxy + 1) {
                 for x in minx..(maxx + 1) {
+            //for y in 0..(self.height) {
+            //    for x in minx..(self.width) {
                     let index = (y*self.width + x) as usize;
                     let mut current_intersection = self.intersection_list.get_mut(index).unwrap();
 
@@ -321,11 +327,11 @@ impl Camera {
                         continue;
                     }
 
-                    ray.dir = self.ray_list[index];
+                    ray.dir.set(&self.ray_list[index]);
 
-                    p = ray.dir.cross(&e2);
+                    p.set(&ray.dir.cross(&e2));
 
-                    det = e1.dot(p);
+                    det = e1.dot(&p);
 
                     if det < -0.00001 {
                         continue;
@@ -335,7 +341,7 @@ impl Camera {
 
                     t = ray.pos - v0.pos;
 
-                    u = t.dot(p)*inv_det;
+                    u = t.dot(&p)*inv_det;
 
                     if u < -0.00001 || u > 1.00001 {
                         continue;
@@ -343,30 +349,30 @@ impl Camera {
 
                     q = t.cross(&e1);
 
-                    v = ray.dir.dot(q) * inv_det;
+                    v = ray.dir.dot(&q) * inv_det;
 
-                    if v < 0.00001 || (u + v) > 1.00001 {
+                    if v < -0.00001 || (u + v) > 1.00001 {
                         continue;
                     }
 
-                    t2 = e2.dot(q) * inv_det;
+                    t2 = e2.dot(&q) * inv_det;
 
                     if t2 > 0.00001 && t2 < current_intersection.dist {
                         if !flag {
                             flag = true;
-                            norm = e1.cross(&e2);
+                            norm.set(&e1.cross(&e2));
                             norm.normalize();
                         }
 
                         current_intersection.dist = t2;
                         current_intersection.u = u;
                         current_intersection.v = v;
-                        current_intersection.norm = norm;
+                        current_intersection.norm.set(&norm);
                         current_intersection.mat = geom.mat;
                     }
                 }
             }
-
+            //println!("Tri {}",i/3);
             i += 3;
         }
     }
@@ -380,7 +386,7 @@ impl Camera {
                 let mut current_intersection = self.intersection_list.get_mut(index).unwrap();
                 ray.pos = *self.ray_list.get(index).unwrap();
 
-                let color = current_intersection.mat.color()*255.99;
+                let color = current_intersection.mat.color(&ray, &current_intersection)*255.99;
 
                 self.imgbuf.get_pixel_mut(x as u32, y as u32).data = [color.x as u8, color.y as u8, color.z as u8, 255];
             }
