@@ -1,5 +1,5 @@
 use image::{RgbaImage};
-pub use math::Vec3f;
+pub use math::vector::Vec3f;
 pub use graphics::intersection::Intersection;
 pub use graphics::geometry::Geom;
 pub use graphics::scene::Scene;

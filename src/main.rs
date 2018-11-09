@@ -1,10 +1,10 @@
 extern crate image;
 extern crate rand;
 
-mod math;
+//mod math;
 mod graphics;
-
-pub use math::Vec3f;
+mod math;
+//pub use math::Vec3f;
 pub use graphics::geometry::*;
 pub use graphics::camera::*;
 pub use graphics::scene::*;

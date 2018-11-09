@@ -1,4 +1,4 @@
-pub use math::Vec3f;
+pub use math::vector::Vec3f;
 
 #[derive(Default, Clone)]
 pub struct Ray {

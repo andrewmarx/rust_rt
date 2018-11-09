@@ -1,4 +1,4 @@
-pub use math::Vec3f;
+pub use math::vector::Vec3f;
 pub use graphics::ray::*;
 pub use graphics::intersection::*;
 
