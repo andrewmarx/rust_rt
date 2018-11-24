@@ -269,9 +269,9 @@ impl Camera {
 
     pub fn render_tris(&mut self, geom: &Geom) {
         //println!("render_tris()");
-        let mut v0: Vertex;
-        let mut v1: Vertex;
-        let mut v2: Vertex;
+        let mut v0: &Vertex;
+        let mut v1: &Vertex;
+        let mut v2: &Vertex;
 
         let mut minx: i32;
         let mut maxx: i32;
@@ -304,9 +304,9 @@ impl Camera {
         while i < array_size {
             flag = false;
 
-            v0 = geom.vertex_array[geom.face_array[i]];
-            v1 = geom.vertex_array[geom.face_array[i + 1]];
-            v2 = geom.vertex_array[geom.face_array[i + 2]];
+            v0 = &geom.vertex_array[geom.face_array[i]];
+            v1 = &geom.vertex_array[geom.face_array[i + 1]];
+            v2 = &geom.vertex_array[geom.face_array[i + 2]];
 
             maxx = v0.sx.max(v1.sx.max(v2.sx));
             minx = v0.sx.min(v1.sx.min(v2.sx));
